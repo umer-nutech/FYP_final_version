@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Try-On</title>
+</head>
+
+<body>
+
+    <h2>Upload Image for Virtual Try-On</h2>
+    <input type="file" id="imageUpload" accept="image/*">
+    <button id="tryOnBtn">Try On</button>
+    <br>
+    <h3>Processed Image:</h3>
+    <img id="resultImage" style="display:none; width:300px;">
+
+    <script>
+        document.getElementById("tryOnBtn").addEventListener("click", async () => {
+            const fileInput = document.getElementById("imageUpload").files[0];
+            if (!fileInput) {
+                alert("Please upload an image first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("image", fileInput);
+
+            try {
+                const response = await fetch("http://localhost:3000/try-on", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+                if (result.image_url) {
+                    document.getElementById("resultImage").src = result.image_url;
+                    document.getElementById("resultImage").style.display = "block";
+                } else {
+                    alert("Error processing image.");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Something went wrong.");
+            }
+        });
+    </script>
+
+</body>
+
+</html>

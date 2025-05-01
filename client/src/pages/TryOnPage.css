@@ -1,0 +1,71 @@
+/* VirtualTryOn.css */
+
+/* General container styling */
+.virtual-tryon-container {
+    font-family: 'Arial', sans-serif;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    margin: auto;
+    text-align: center;
+}
+
+/* Heading styles */
+.virtual-tryon-container h1 {
+    font-size: 1.8rem;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.virtual-tryon-container h3,
+.virtual-tryon-container h4 {
+    color: #333;
+    font-size: 1.2rem;
+    margin-top: 20px;
+}
+
+.virtual-tryon-container p {
+    font-size: 1rem;
+    color: #ff0000;
+}
+
+/* Input file styling */
+.virtual-tryon-container input[type="file"] {
+    margin: 10px 0;
+    padding: 10px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+    width: 80%;
+}
+
+/* Button styling */
+
+
+.virtual-tryon-container button:disabled {
+    background-color: #cccccc;
+}
+
+.virtual-tryon-container button:hover {
+    background-color: #004d40;
+}
+
+/* Image styling */
+.virtual-tryon-container img {
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Result container */
+.result-container {
+    margin-top: 20px;
+}
+
+.result-container img {
+    width: 300px;
+    height: auto;
+    border-radius: 8px;
+}

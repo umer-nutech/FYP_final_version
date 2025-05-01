@@ -1,0 +1,371 @@
+TryOnPage.js:
+import axios from "axios";
+import { useState } from "react";
+
+const TryOnPage = () => {
+  const [userImage, setUserImage] = useState(null);
+  const [clothImage, setClothImage] = useState(null);
+  const [resultUrl, setResultUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (type === "user") setUserImage(file);
+      if (type === "cloth") setClothImage(file);
+    }
+  };
+
+  const handleTryOn = async () => {
+    try {
+      if (!userImage || !clothImage) {
+        console.error("Error: Both user image and cloth image are required.");
+        setErrorMessage("Both user image and cloth image are required.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("userImage", userImage);
+      formData.append("clothImage", clothImage);
+
+      setLoading(true);
+      setErrorMessage("");
+
+      console.log("Sending Try-On request...");
+      console.log(
+        "FormData entries:",
+        formData.get("userImage"),
+        formData.get("clothImage")
+      );
+
+      // ✅ Ensure this request is a POST request
+      const response = await axios.post(
+        "http://localhost:5050/api/v1/tryon",
+        formData, // Sending form data
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      console.log("Try-On API Response:", response.data);
+
+      if (response.data && response.data.cropped_target_url) {
+        setResultUrl(response.data.cropped_target_url);
+        setFinalOutputVisible(true);
+      } else {
+        setErrorMessage("Try-On result not available.");
+      }
+    } catch (error) {
+      console.error("Error in Try-On:", error);
+      setErrorMessage("An error occurred during the Try-On process.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  return (
+    <div>
+      <h1>Virtual Try-On</h1>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleFileChange(e, "user")}
+      />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleFileChange(e, "cloth")}
+      />
+      <button onClick={handleTryOn} disabled={loading}>
+        {loading ? "Processing..." : "Try On"}
+      </button>
+
+      {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+
+      {resultUrl && (
+        <div>
+          <h3>Try-On Result</h3>
+          <img src={resultUrl} alt="Try-on Result" style={{ width: "300px" }} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TryOnPage;
+
+
+server.js:
+import dotenv from "dotenv"; // Load environment variables
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
+import multer from "multer";
+import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
+import { v2 as cloudinary } from "cloudinary"; // **Added Cloudinary import**
+import { fal } from "@fal-ai/client";
+
+dotenv.config();
+
+fal.config({
+  credentials: process.env.FAL_AI_API_KEY, // Using the key from .env
+});
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Get the current directory in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure Cloudinary using values from .env
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(
+  cors({
+    origin: "http://localhost:3000", // your React app's URL
+  })
+);
+app.use(morgan("dev"));
+
+// Serve static files from the uploads folder
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Set the destination and filename for uploaded files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, "uploads")); // Save to 'uploads' folder
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}${path.extname(file.originalname)}`); // Timestamp-based filename to avoid collisions
+  },
+});
+
+const upload = multer({ storage });
+
+// Routes
+app.get("/", (req, res) => {
+  res.send("Backend is up and running!");
+});
+
+// Upload Target Image
+app.post("/apps/proxy/upload", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  console.log("Target image received:", req.file);
+  try {
+    // Upload the file to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path);
+
+    // Respond with the Cloudinary URL
+    res.json({ url: result.secure_url });
+  } catch (error) {
+    console.error("Error uploading to Cloudinary:", error);
+    res.status(500).json({ error: "Failed to upload image" });
+  }
+});
+
+// Upload Source Image
+app.post("/apps/proxy/upload1", upload.single("image1"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  console.log("Source image received:", req.file);
+  try {
+    // Upload the file to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path);
+
+    // Respond with the Cloudinary URL
+    res.json({ url: result.secure_url });
+  } catch (error) {
+    console.error("Error uploading to Cloudinary:", error);
+    res.status(500).json({ error: "Failed to upload image" });
+  }
+});
+
+// Handle Final Form Submission
+app.post("/apps/proxy/userimg", async (req, res) => {
+  const { target_file_url, source_file_url } = req.body;
+
+  try {
+    // Upload target image from URL to Cloudinary and crop it
+    const uploadResult = await cloudinary.uploader.upload(target_file_url, {
+      public_id: `target_image_${Date.now()}`,
+      crop: "auto",
+      gravity: "auto",
+      width: 500,
+      height: 500,
+    });
+
+    console.log("Uploaded and cropped target image:", uploadResult);
+
+    res.json({
+      message: "Image processed successfully",
+      cropped_target_url: uploadResult.secure_url,
+    });
+  } catch (error) {
+    console.error("Error processing image with Cloudinary:", error);
+    res.status(500).json({ error: "Error processing the image" });
+  }
+
+  // Don't disturb the following commented code
+  // try {
+  //   // Submit the request to Fal AI API
+  //   const result = await fal.subscribe("fal-ai/cat-vton", {
+  //     input: {
+  //       human_image_url: target_file_url,
+  //       garment_image_url: source_file_url,
+  //       cloth_type: "upper", // You can change this based on your requirements
+  //     },
+  //     logs: true,
+  //     onQueueUpdate: (update) => {
+  //       if (update.status === "IN_PROGRESS") {
+  //         update.logs.map((log) => log.message).forEach(console.log);
+  //       }
+  //     },
+  //   });
+
+  //   console.log('Fal API result:', result.data);
+  //   console.log('Request ID:', result.requestId);
+
+  //   // Respond with the result from Fal AI
+  //   res.json({ success: true, data: result.data, requestId: result.requestId });
+  // } catch (error) {
+  //   console.error('Error with Fal API:', error);
+  //   res.status(500).json({ error: 'Error with Fal API' });
+  // }
+});
+
+// Try-On Endpoint
+app.post("/api/v1/tryon", async (req, res) => {
+  const { target_file_url, source_file_url } = req.body;
+
+  if (!target_file_url || !source_file_url) {
+    return res
+      .status(400)
+      .json({ error: "Both target and source image URLs are required" });
+  }
+
+  try {
+    // Process the target image using Cloudinary (Optional, you can use Fal AI API directly if needed)
+    const uploadResult = await cloudinary.uploader.upload(target_file_url, {
+      public_id: `target_image_${Date.now()}`,
+      crop: "auto",
+      gravity: "auto",
+      width: 500,
+      height: 500,
+    });
+
+    console.log("Uploaded and cropped target image:", uploadResult);
+
+    // Here, you can integrate with the Fal AI API (Uncomment if needed)
+    // const result = await fal.subscribe("fal-ai/cat-vton", {
+     //  input: {
+       //human_image_url: target_file_url,
+      // garment_image_url: source_file_url,
+      //cloth_type: "upper", // You can modify this depending on the type of cloth
+     //},
+     //logs: true,
+     //onQueueUpdate: (update) => {
+       // if (update.status === "IN_PROGRESS") {
+        // update.logs.map((log) => log.message).forEach(console.log);
+       //}
+      //},
+    //});
+
+    // Here, return the response after processing
+    res.json({
+      message: "Try-On request processed successfully!",
+      cropped_target_url: uploadResult.secure_url,
+      //result: result.data // Uncomment if Fal API integration is needed
+    });
+  } catch (error) {
+    console.error("Error with the Try-On process:", error);
+    res.status(500).json({ error: "Error processing the Try-On request" });
+  }
+});
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+App.js:
+import { Routes, Route } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Policy from "./pages/Policy";
+import Pagenotfound from "./pages/Pagenotfound";
+import Register from "./pages/Auth/Register.js";
+import Login from "./pages/Auth/Login.js";
+import Dashboard from "./pages/user/Dashboard.js";
+import PrivateRoute from "./components/Routes/Private.js";
+import ForgotPassword from "./pages/Auth/ForgotPassword.js";
+import AdminDashboard from "./pages/Admin/AdminDashboard.js";
+import AdminRoute from "./components/Routes/AdminRoute.js";
+import CreateCategory from "./pages/Admin/CreateCategory.js";
+import CreateProduct from "./pages/Admin/CreateProduct.js";
+import Users from "./pages/Admin/Users.js";
+import Orders from "./pages/user/Orders.js";
+import Profile from "./pages/user/Profile.js";
+import Products from "./pages/Admin/Products.js";
+import UpdateProduct from "./pages/Admin/UpdateProduct.js";
+import Categories from "./pages/Categories.js";
+import Search from "./pages/Search.js";
+import ProductDetails from "./pages/ProductDetails.js";
+import CategoryProduct from "./pages/CategoryProduct.js";
+import CartPage from "./pages/CartPage.js";
+import TryOnPage from "./pages/TryOnPage.js";
+function App() {
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/product/:slug" element={<ProductDetails />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/categories" element={<Categories />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/category/:slug" element={<CategoryProduct />} />
+        <Route path="/dashboard" element={<PrivateRoute />}>
+          <Route path="user" element={<Dashboard />} />
+          <Route path="user/orders" element={<Orders />} />
+          <Route path="user/profile" element={<Profile />} />
+        </Route>
+        <Route path="/tryon/:productId" element={<TryOnPage />}></Route>
+        <Route path="dashboard" element={<AdminRoute />}>
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/create-category" element={<CreateCategory />} />
+          <Route path="admin/create-product" element={<CreateProduct />} />
+          <Route path="admin/product/:slug" element={<UpdateProduct />} />
+          <Route path="admin/products" element={<Products />} />
+          <Route path="admin/users" element={<Users />} />
+        </Route>
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/policy" element={<Policy />} />
+        <Route path="*" element={<Pagenotfound />} />
+      </Routes>
+    </>
+  );
+}
+
+export default App;

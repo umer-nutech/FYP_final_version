@@ -1,0 +1,159 @@
+/* 🎨 MODERN & RESPONSIVE CARD STYLES WITH IMPROVED COLORS 🎨 */
+
+/* Card Container */
+.product-card {
+  width: 21rem;
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #00b3b3, #006f6f); /* Smooth gradient */
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 18px rgba(0, 255, 255, 0.4);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  position: relative;
+}
+
+/* Card Image */
+.product-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15); /* Lighter border for a subtle effect */
+}
+
+/* Card Body */
+.card-body {
+  flex-grow: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #f0f0f0; /* Lighter text color for better contrast */
+  text-align: center;
+  background: rgba(0, 0, 0, 0.3); /* Subtle background for contrast */
+  border-radius: 8px;
+}
+
+/* Product Title */
+.card-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.5); /* Stronger glow effect */
+  margin-bottom: 0.5rem;
+  color: #ffffff; /* Bright white title for high contrast */
+}
+
+/* Multi-line Description */
+.card-text {
+  font-size: 0.95rem;
+  color: #d3d3d3; /* Softer grey for description */
+  line-height: 1.4;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Action Buttons */
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+/* 🎯 Enhanced Button Styles */
+.btn-primary,
+.btn-secondary {
+  padding: 12px;
+  border: 2px solid #00b3b3; /* Matching card's gradient */
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #ffffff;
+  background: #006f6f; /* Matching button background */
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  width: 100%;
+}
+
+/* Button Hover Effects */
+.btn-primary:hover,
+.btn-secondary:hover {
+  background-color: #00b3b3; /* Lighter hover effect */
+  transform: scale(1.05);
+  color: #000000; /* Dark text on hover for contrast */
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+}
+
+/* 🎨 Dark Mode Adaptations */
+body.dark-mode .product-card {
+  background: linear-gradient(135deg, #003333, #006f6f); /* Darker tones for dark mode */
+}
+
+body.dark-mode .card-title {
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8); /* More pronounced glow */
+  color: #00e6e6; /* Brighter cyan title for dark mode */
+}
+
+body.dark-mode .card-text {
+  color: #b8b8b8; /* Slightly brighter text for better readability */
+}
+
+body.dark-mode .btn-primary,
+body.dark-mode .btn-secondary {
+  background: #004444; /* Darker button background */
+  border-color: #00b3b3;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+/* 🎨 Light Mode Adaptations */
+body.light-mode .product-card {
+  background: linear-gradient(135deg, #00b3b3, #006f6f); /* Bright tones for light mode */
+}
+
+body.light-mode .card-title {
+  color: #00b3b3; /* Light blue title for light mode */
+}
+
+body.light-mode .card-text {
+  color: #2b2b2b; /* Dark text for better readability */
+}
+
+body.light-mode .btn-primary,
+body.light-mode .btn-secondary {
+  background: #006f6f; /* Deep teal button background */
+  border-color: #00b3b3;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+/* 🖥️ Media Query for Smaller Screens */
+@media (max-width: 767px) {
+  .product-card {
+    width: 90%;
+    min-height: 400px;
+  }
+
+  .card-title {
+    font-size: 1.2rem;
+  }
+
+  .card-text {
+    font-size: 0.85rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    font-size: 14px;
+    padding: 10px;
+  }
+}

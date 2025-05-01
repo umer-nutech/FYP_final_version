@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Try-On</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        input, button {
+            margin: 10px;
+            padding: 10px;
+        }
+        img {
+            margin-top: 20px;
+            max-width: 300px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h2>Virtual Try-On</h2>
+    
+    <form id="uploadForm">
+        <label>Upload User Image:</label>
+        <input type="file" id="userImage" accept="image/*" required><br>
+        
+        <label>Upload Cloth Image:</label>
+        <input type="file" id="clothImage" accept="image/*" required><br>
+        
+        <button type="submit">Try-On</button>
+    </form>
+
+    <h3>Result:</h3>
+    <img id="resultImage" alt="Result will appear here">
+
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            let userImage = document.getElementById("userImage").files[0];
+            let clothImage = document.getElementById("clothImage").files[0];
+
+            let formData = new FormData();
+            formData.append("user_image", userImage);
+            formData.append("cloth_image", clothImage);
+
+            try {
+                let response = await fetch("http://127.0.0.1:5000/tryon", {
+                    method: "POST",
+                    body: formData
+                });
+
+                let data = await response.json();
+                if (data.result_url) {
+                    let resultImage = document.getElementById("resultImage");
+                    resultImage.src = data.result_url;
+                    resultImage.style.display = "block";
+                } else {
+                    alert("Try-On failed! Please check the server logs.");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Error in Try-On API request!");
+            }
+        });
+    </script>
+</body>
+</html>

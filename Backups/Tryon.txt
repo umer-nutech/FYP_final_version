@@ -1,0 +1,107 @@
+import axios from "axios";
+import { useState } from "react";
+
+const TryOnPage = () => {
+  const [userImage, setUserImage] = useState(null);
+  const [clothImage, setClothImage] = useState(null);
+  const [resultUrl, setResultUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (type === "user") setUserImage(file);
+      if (type === "cloth") setClothImage(file);
+    }
+  };
+
+  const handleTryOn = async () => {
+    try {
+      if (!userImage || !clothImage) {
+        console.error("Error: Both user image and cloth image are required.");
+        setErrorMessage("Both user image and cloth image are required.");
+        return;
+      }
+
+      setLoading(true);
+      setErrorMessage("");
+
+      console.log("Sending Try-On request...");
+
+      // Upload user image
+      const userFormData = new FormData();
+      userFormData.append("image", userImage); // Use "image" as the field name
+      const targetResponse = await axios.post(
+        "http://localhost:5050/apps/proxy/upload",
+        userFormData
+      );
+
+      // Upload cloth image
+      const clothFormData = new FormData();
+      clothFormData.append("image1", clothImage); // Use "image1" as the field name
+      const sourceResponse = await axios.post(
+        "http://localhost:5050/apps/proxy/upload1",
+        clothFormData
+      );
+
+      const targetUrl = targetResponse.data.url;
+      const sourceUrl = sourceResponse.data.url;
+
+      console.log("Target URL:", targetUrl);
+      console.log("Source URL:", sourceUrl);
+
+      // Send Try-On request to Replicate
+      const tryOnResponse = await axios.post(
+        "http://localhost:5050/api/v1/tryon",
+        {
+          target_file_url: targetUrl,
+          source_file_url: sourceUrl,
+        }
+      );
+
+      console.log("Try-On API Response:", tryOnResponse.data);
+
+      if (tryOnResponse.data && tryOnResponse.data.result_url) {
+        setResultUrl(tryOnResponse.data.result_url);
+      } else {
+        setErrorMessage("Try-On result not available.");
+      }
+    } catch (error) {
+      console.error("Error in Try-On:", error);
+      setErrorMessage("An error occurred during the Try-On process.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h1>Virtual Try-On</h1>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleFileChange(e, "user")}
+      />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleFileChange(e, "cloth")}
+      />
+      <button onClick={handleTryOn} disabled={loading}>
+        {loading ? "Processing..." : "Try On"}
+      </button>
+
+      {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+
+      {resultUrl && (
+        <div>
+          <h3>Try-On Result</h3>
+          <img src={resultUrl} alt="Try-on Result" style={{ width: "300px" }} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TryOnPage;
